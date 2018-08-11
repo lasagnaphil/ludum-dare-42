@@ -1,17 +1,28 @@
 require "strict"
 Object = require "classic"
 
-local fontchars = 'abcdefghijklmnopqrstuvwxyz"\'`-_/1234567890!?[](){}.,;:<>+=%#^*~ '
-local font
+fontchars = 'abcdefghijklmnopqrstuvwxyz"\'`-_/1234567890!?[](){}.,;:<>+=%#^*~ '
+font = nil
 
-local debug = false
+debug = false
 
-local images = {}
-local world = nil
-local ship = nil
-local boxes = {}
-local player = nil
-local gravity = 9.81 * 10
+images = {}
+world = nil
+ship = nil
+boxes = {}
+player = nil
+
+gravity = 9.81 * 10
+
+function table.find_remove_one(tbl, elem)
+    for i, e in ipairs(tbl) do
+        if e == elem then 
+            table.remove(tbl, i)
+            return true
+        end
+    end
+    return false
+end
 
 function table.find_index(tbl, elem)
     for i, e in ipairs(tbl) do
@@ -20,125 +31,56 @@ function table.find_index(tbl, elem)
     return nil
 end
 
-Ship = Object:extend()
-
-function Ship:new()
-    self.image = images.ship
-    self.width = images.ship:getWidth()
-    self.height = images.ship:getHeight()
-    self.baseline = 192
-    self.ground = true
-    self.body = love.physics.newBody(world, 128, self.baseline, "dynamic")
-    local ship_shape = love.physics.newRectangleShape(0, 10, self.width, self.height - 20)
-    self.fixture = love.physics.newFixture(self.body, ship_shape, 1)
-    self.fixture:setUserData(self)
+function drawHighlight(fixture, body)
+    local shape = fixture:getShape()
+    if shape:typeOf("CircleShape") then
+        local cx, cy = body:getWorldPoints(shape:getPoint())
+        love.graphics.circle("line", cx, cy, shape:getRadius())
+    elseif shape:typeOf("PolygonShape") then
+        love.graphics.polygon("line", body:getWorldPoints(shape:getPoints()))
+    else
+        love.graphics.line(body:getWorldPoints(shape:getPoints()))
+    end
 end
 
-function Ship:update(dt)
-    local x, y = ship.body:getPosition()
-    self.body:applyForce(0, -gravity * self.body:getMass() * (1 + (y - ship.baseline) / ship.height))
-end
-
-function Ship:draw()
-    local x,y = self.body:getPosition()
-    love.graphics.draw(self.image, x, y, self.body:getAngle(), 1, 1, self.width/2, self.height/2)
-end
+require "pickable"
+require "ship"
+require "player"
 
 Box = Object:extend()
+Box:implement(Pickable)
 
 function Box:new(x, y)
     self.image = images.box
-    self.size = images.box:getWidth()
-    self.ground = true;
+    self.width = images.box:getWidth()
+    self.height = images.box:getHeight()
+    self.ground = true
     self.body = love.physics.newBody(world, x, y, "dynamic")
-    local box_shape = love.physics.newRectangleShape(self.size, self.size)
+    local box_shape = love.physics.newRectangleShape(self.width, self.height)
     self.fixture = love.physics.newFixture(self.body, box_shape, 1)
     self.fixture:setUserData(self)
+
+    Pickable.init(self)
 end
 
 function Box:draw()
     local x, y = self.body:getPosition()
-    love.graphics.draw(self.image, x, y, self.body:getAngle(), 1, 1, self.size/2, self.size/2)
-end
-
-Player = Object:extend()
-
-function Player:new()
-    self.image = images.player
-    self.width = images.player:getWidth()
-    self.height = images.player:getHeight()
-    self.facingLeft = false
-    self.onGround = false
-    self.objectsSteppingOn = {}
-    self.body = love.physics.newBody(world, 128, 128, "dynamic")
-    self.body:setFixedRotation(true)
-    local shape = love.physics.newRectangleShape(0, 0, self.width, self.height)
-    self.fixture = love.physics.newFixture(self.body, shape, 1)
-    self.fixture:setUserData(self)
-end
-
-function Player:keypressed(key, scancode, isrepeat)
-    if key == "up" then
-        if #self.objectsSteppingOn > 0 then
-            self.body:applyLinearImpulse(0, -50)
-        end
-    end
-end
-
-function Player:update(dt)
-    local vx, vy = self.body:getLinearVelocity()
-    local threshold = 50
-    self.facingLeft = vx < 0
-    if love.keyboard.isDown("left") and vx > -50 then
-        self.body:applyForce(-100, 0)
-    end
-    if love.keyboard.isDown("right") and vx < 50 then
-        self.body:applyForce(100, 0)
-    end
-end
-
-function Player:draw()
-    local x, y = self.body:getPosition()
-    if self.facingLeft then
-        love.graphics.draw(self.image, x, y, self.body:getAngle(), -1, 1, self.width/2, self.height/2)
-    else
-        love.graphics.draw(self.image, x, y, self.body:getAngle(), 1, 1, self.width/2, self.height/2)
-    end
-end
-
-function Player:onCollisionBegin(other, coll)
-    if other.ground then 
-        local cx1, cy1, cx2, cy2 = coll:getPositions()
-        local x, y = self.body:getPosition()
-        if cy1 and cy1 > y + self.height * 0.3 then
-            table.insert(self.objectsSteppingOn, other)
-            print("begin stepping on object")
-        end
-    end 
-end
-
-function Player:onCollisionEnd(other, coll)
-    if other.ground then
-        local index = table.find_index(self.objectsSteppingOn, other) 
-        if index then
-            table.remove(self.objectsSteppingOn, index)
-            print("end stepping on object")
-        end
-    end
+    love.graphics.draw(self.image, x, y, self.body:getAngle(), 1, 1, self.width/2, self.height/2)
+    self:drawHighlight()
 end
 
 function love.load()
     love.window.setMode(512, 512, {})
-    font = love.graphics.newImageFont("pico8_font.png", fontchars, 1)
+    font = love.graphics.newImageFont("images/pico8_font.png", fontchars, 1)
     font:setFilter("nearest", "nearest")
     love.graphics.setFont(font)
     love.graphics.setDefaultFilter("nearest", "nearest", 1)
 
-    images.ocean = love.graphics.newImage("ocean.png")
-    images.background = love.graphics.newImage("background.png")
-    images.ship = love.graphics.newImage("ship.png")
-    images.box = love.graphics.newImage("box.png")
-    images.player = love.graphics.newImage("player_small.png")
+    images.ocean = love.graphics.newImage("images/ocean.png")
+    images.background = love.graphics.newImage("images/background.png")
+    images.ship = love.graphics.newImage("images/ship.png")
+    images.box = love.graphics.newImage("images/box.png")
+    images.player = love.graphics.newImage("images/player_small.png")
 
     love.physics.setMeter(32)
     world = love.physics.newWorld(0, gravity)
@@ -163,6 +105,7 @@ end
 function love.draw()
     love.graphics.push()
     love.graphics.scale(2, 2)
+
     love.graphics.draw(images.background)
     for _, box in ipairs(boxes) do
         box:draw()
@@ -175,15 +118,7 @@ function love.draw()
         love.graphics.setColor(0, 1, 0)
         for _, body in pairs(world:getBodies()) do
             for _, fixture in pairs(body:getFixtures()) do
-                local shape = fixture:getShape()
-                if shape:typeOf("CircleShape") then
-                    local cx, cy = body:getWorldPoints(shape:getPoint())
-                    love.graphics.circle("line", cx, cy, shape:getRadius())
-                elseif shape:typeOf("PolygonShape") then
-                    love.graphics.polygon("line", body:getWorldPoints(shape:getPoints()))
-                else
-                    love.graphics.line(body:getWorldPoints(shape:getPoints()))
-                end
+                drawHighlight(fixture:getShape())
             end
         end
         love.graphics.setColor(1, 1, 1)
