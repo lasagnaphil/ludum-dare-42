@@ -2,6 +2,7 @@ require "strict"
 serpent = require "serpent"
 Object = require "classic"
 Camera = require "Camera"
+Timer = require "timer"
 
 canvas = nil
 
@@ -16,11 +17,12 @@ ship = nil
 boxes = {}
 player = nil
 drones = {}
+bullets = {}
 
 camera = nil
 
 Constants = {
-    gravity = 9.81 * 20,
+    gravity = 9.81 * 25,
     waterDensity = 1
 }
 
@@ -28,6 +30,7 @@ require "utils"
 
 require "pickable"
 require "ship"
+require "bullet"
 require "player"
 require "box"
 require "drone"
@@ -44,8 +47,9 @@ function love.load()
     images.background = love.graphics.newImage("images/background.png")
     images.ship = love.graphics.newImage("images/ship.png")
     images.box = love.graphics.newImage("images/box.png")
-    images.player = love.graphics.newImage("images/player_small.png")
+    images.player = love.graphics.newImage("images/player2.png")
     images.drone1 = love.graphics.newImage("images/drone1.png")
+    images.bullet1 = love.graphics.newImage("images/bullet1.png")
 
     love.physics.setMeter(32)
     world = love.physics.newWorld(0, Constants.gravity)
@@ -58,15 +62,23 @@ function love.load()
     player = Player()
 
     drones[1] = Drone(64, 0)
+    drones[2] = Drone(128, 0)
+    drones[3] = Drone(196, 0)
+    drones[4] = Drone(256, 0)
 
     camera = Camera(256, 256, 256, 256)
 end
 
 function love.update(dt)
+    Timer.update(dt)
+
     world:update(dt)
     player:update(dt)
     ship:update(dt)
-    for i=1,#drones do
+    for i = 1, #bullets do
+        bullets[i]:update(dt)
+    end
+    for i = 1, #drones do
         drones[i]:update(dt)
     end
 
@@ -95,6 +107,9 @@ function love.draw()
     end
     player:draw()
     ship:draw()
+    for i = 1, #bullets do
+        bullets[i]:draw()
+    end
     for i = 1, #drones do
         drones[i]:draw()
     end
@@ -110,6 +125,8 @@ function love.draw()
     end
 
     camera:detach()
+
+    love.graphics.print("health: " .. player.health, 10, 10)
 
     love.graphics.draw(images.ocean)
 

@@ -5,6 +5,8 @@ function Player:new()
     self.width = images.player:getWidth()
     self.height = images.player:getHeight()
 
+    self.health = 100
+
     self.facingLeft = false
     self.onGround = false
     self.objectsSteppingOn = {}
@@ -16,14 +18,16 @@ function Player:new()
     local shape = love.physics.newRectangleShape(0, 0, self.width, self.height)
     self.fixture = love.physics.newFixture(self.body, shape, 1)
     self.fixture:setUserData(self)
+    self.body:setMass(1)
     self.pickupJoint = nil
 end
 
 function Player:keypressed(key, scancode, isrepeat)
-    local x, y = self.body:getPosition()
+    local x, y = self.body:getPosition() 
+    local jumpForce = 150
     if key == "up" or key == "space" then
         if #self.objectsSteppingOn > 0 then
-            self.body:applyLinearImpulse(0, -50)
+            self.body:applyLinearImpulse(0, -jumpForce)
         end
     end
     if key == "c" then
@@ -51,13 +55,14 @@ end
 function Player:update(dt)
     local vx, vy = self.body:getLinearVelocity()
     local threshold = 50
+    local moveForce = 200
     if love.keyboard.isDown("left") and vx > -50 then
         self:setFacingLeft(true)
-        self.body:applyForce(-100, 0)
+        self.body:applyForce(-moveForce, 0)
     end
     if love.keyboard.isDown("right") and vx < 50 then
         self:setFacingLeft(false)
-        self.body:applyForce(100, 0)
+        self.body:applyForce(moveForce, 0)
     end
 end
 
@@ -147,4 +152,8 @@ function Player:onCollisionEnd(other, coll)
     if other.ground then
         table.find_remove_one(self.objectsSteppingOn, other)
     end
+end
+
+function Player:damage(damage)
+    self.health = self.health - damage
 end

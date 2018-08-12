@@ -10,6 +10,7 @@ function Box:new(x, y)
     local box_shape = love.physics.newRectangleShape(self.width, self.height)
     self.fixture = love.physics.newFixture(self.body, box_shape, 1)
     self.fixture:setUserData(self)
+    self.body:setMass(0.1)
 
     Pickable.init(self)
 end
