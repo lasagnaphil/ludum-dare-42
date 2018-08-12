@@ -1,8 +1,8 @@
-require "strict"
-serpent = require "serpent"
-Object = require "classic"
-Camera = require "Camera"
-Timer = require "timer"
+require "deps.strict"
+serpent = require "deps.serpent"
+Object = require "deps.classic"
+Camera = require "deps.Camera"
+Timer = require "deps.timer"
 
 require "utils"
 
