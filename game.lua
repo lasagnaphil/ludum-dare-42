@@ -136,8 +136,24 @@ function endContact(a_fixture, b_fixture, coll)
     end
 end
  
-function preSolve(a, b, coll)
+function preSolve(a_fixture, b_fixture, coll)
+    local a = a_fixture:getUserData()
+    local b = b_fixture:getUserData()
+    if a and a.onCollisionPresolve then
+        a:onCollisionPresolve(b, coll)
+    end
+    if b and b.onCollisionPresolve then
+        b:onCollisionPresolve(a, coll)
+    end
 end
  
-function postSolve(a, b, coll, normalImpulse, tangentImpulse)
+function postSolve(a_fixture, b_fixture, coll, normalImpulse, tangentImpulse)
+    local a = a_fixture:getUserData()
+    local b = b_fixture:getUserData()
+    if a and a.onCollisionPostsolve then
+        a:onCollisionPostsolve(b, coll, normalImpulse, tangentImpulse)
+    end
+    if b and b.onCollisionPostsolve then
+        b:onCollisionPostsolve(a, coll, normalImpulse, tangentImpulse)
+    end
 end

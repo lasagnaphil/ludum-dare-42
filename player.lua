@@ -9,9 +9,7 @@ function Player:new()
 
     self.facingLeft = false
     self.onGround = false
-    self.objectsSteppingOn = {}
     self.pickedObject = nil
-    self.objectsToPickup = {}
 
     self.body = love.physics.newBody(world, 128, 128, "dynamic")
     self.body:setFixedRotation(true)
@@ -26,28 +24,38 @@ function Player:keypressed(key, scancode, isrepeat)
     local x, y = self.body:getPosition() 
     local jumpForce = 150
     if key == "up" or key == "space" then
-        if #self.objectsSteppingOn > 0 then
+        local shouldJump = false
+        world:rayCast(x, y, x, y + self.height/2 + 2, function(fixture, x, y, xn, yn, fraction)
+            local obj = fixture:getUserData()
+            if obj.ground then
+                shouldJump = true
+                return 0
+            end
+            return -1
+        end)
+        if shouldJump then
             self.body:applyLinearImpulse(0, -jumpForce)
         end
     end
     if key == "c" then
-        if self.pickedObject == nil then
-            if #self.objectsToPickup > 0 then
-                local minDist2 = 10000000000
-                local closestIndex = nil
-                for i, object in ipairs(self.objectsToPickup) do
-                    local ox, oy = object.body:getPosition()
-                    local dist2 = (x - ox) * (x - ox) + (y - oy) * (y - oy)
-                    if dist2 < minDist2 then
-                        minDist2 = dist2
-                        closestIndex = i
-                    end
-                end
-                self:pickupObject(self.objectsToPickup[closestIndex])
-                table.remove(self.objectsToPickup, closestIndex)
-            end
-        else
+        if self.pickedObject then
             self:dropObject()
+        else
+            local xp = self.facingLeft and (x - self.width/2 - 3) or (x + self.width/2 + 3)
+            local pickedUpObject = nil
+            local dist2 = 1000000
+            world:rayCast(x, y, xp, y, function(fixture, x, y, xn, yn, fraction)
+                local obj = fixture:getUserData()
+                if obj.pickable then
+                    pickedUpObject = obj
+                    return 0
+                end
+                return -1
+            end)
+
+            if pickedUpObject then
+                self:pickupObject(pickedUpObject)
+            end
         end
     end
 end
@@ -56,11 +64,11 @@ function Player:update(dt)
     local vx, vy = self.body:getLinearVelocity()
     local threshold = 50
     local moveForce = 200
-    if love.keyboard.isDown("left") and vx > -50 then
+    if love.keyboard.isDown("left") and vx > -threshold then
         self:setFacingLeft(true)
         self.body:applyForce(-moveForce, 0)
     end
-    if love.keyboard.isDown("right") and vx < 50 then
+    if love.keyboard.isDown("right") and vx < threshold then
         self:setFacingLeft(false)
         self.body:applyForce(moveForce, 0)
     end
@@ -110,48 +118,10 @@ function Player:dropObject()
     self.pickupJoint:destroy()
     self.pickupJoint = nil
 
-    table.find_remove_one(self.objectsToPickup, self.pickedObject)
-
     self.pickedObject.isPicked = false
     self.pickedObject.isReachable = false
     self.pickedObject.body:setFixedRotation(false)
     self.pickedObject = nil
-end
-
-function Player:onCollisionBegin(other, coll)
-    if other.pickable then
-        local cx1, cy1, cx2, cy2 = coll:getPositions()
-        local x, y = self.body:getPosition()
-        if self.facingLeft then
-            if cx1 and cx1 < x - self.width * 0.3 then
-                other.isReachable = true
-                table.insert(self.objectsToPickup, other)
-            end
-        else 
-            if cx1 and cx1 > x + self.width * 0.3 then
-                other.isReachable = true
-                table.insert(self.objectsToPickup, other)
-            end
-        end
-    end
-    if other.ground then 
-        local cx1, cy1, cx2, cy2 = coll:getPositions()
-        local x, y = self.body:getPosition()
-        if cy1 and cy1 > y + self.height * 0.3 then
-            table.insert(self.objectsSteppingOn, other)
-        end
-    end 
-end
-
-function Player:onCollisionEnd(other, coll)
-    if other.pickable then
-        if table.find_remove_one(self.objectsToPickup, other) then
-            other.isReachable = false
-        end
-    end
-    if other.ground then
-        table.find_remove_one(self.objectsSteppingOn, other)
-    end
 end
 
 function Player:damage(damage)

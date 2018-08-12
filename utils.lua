@@ -16,7 +16,7 @@ function table.find_index(tbl, elem)
 end
 
 function table.clear(tbl)
-    for i in pairs(tbl) do
+    for i = 1, #tbl do
         tbl[i] = nil
     end
 end
