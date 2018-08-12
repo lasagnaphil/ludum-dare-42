@@ -1,9 +1,9 @@
 Bullet = Object:extend()
 
 function Bullet:new(x, y, vx, vy, damage)
-    self.image = images.bullet1
-    self.width = images.bullet1:getWidth()
-    self.height = images.bullet1:getHeight()
+    self.image = images.bullets[1]
+    self.width = self.image:getWidth()
+    self.height = self.image:getHeight()
     self.damage = damage
     self.vx = vx
     self.vy = vy
@@ -34,7 +34,7 @@ function Bullet:destroy()
 end
 
 function Bullet:onCollisionBegin(other, coll)
-    if other:is(Player) then
+    if other.damage then
         other:damage(self.damage)
     end
     self:destroy()

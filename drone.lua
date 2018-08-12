@@ -1,10 +1,12 @@
 Drone = Object:extend()
 
 function Drone:new(x, y)
-    self.image = images.drone1
-    self.width = images.drone1:getWidth()
-    self.height = images.drone1:getHeight()
+    self.image = images.drones[1]
+    self.width = self.image:getWidth()
+    self.height = self.image:getHeight()
     self.size = math.sqrt(self.width * self.width + self.height * self.height)
+
+    self.health = 100
 
     self.body = love.physics.newBody(world, x, y, "dynamic")
     self.body:setGravityScale(0)
@@ -19,8 +21,9 @@ function Drone:new(x, y)
 
     local shootCount = self.shootDuration * self.bulletsPerSecond
 
-    Timer.every(self.shootDuration + self.restDuration, function()
-        Timer.every(1 / self.bulletsPerSecond, function()
+    self.shootTimer = nil
+    self.timer = Timer.every(self.shootDuration + self.restDuration, function()
+        self.shootTimer = Timer.every(1 / self.bulletsPerSecond, function()
             local x, y = self.body:getPosition()
             local px, py = player.body:getPosition()
             local dx, dy = px - x, py - y
@@ -57,5 +60,19 @@ function Drone:draw()
     love.graphics.draw(self.image, x, y, self.body:getAngle(), 1, 1, self.width/2, self.height/2)
 end
 
+function Drone:damage(damage)
+    self.health = self.health - damage
+    if self.health <= 0 then
+        self:destroy()
+    end
+end
+
 function Drone:destroy()
+    self.fixture:destroy()
+    self.body:destroy()
+    self.timer:remove()
+    if self.shootTimer then
+        self.shootTimer:remove()
+    end
+    table.find_remove_one(drones, self)
 end

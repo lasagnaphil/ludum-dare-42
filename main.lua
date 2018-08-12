@@ -18,6 +18,7 @@ boxes = {}
 player = nil
 drones = {}
 bullets = {}
+turrets = {}
 
 camera = nil
 
@@ -34,6 +35,7 @@ require "bullet"
 require "player"
 require "box"
 require "drone"
+require "turret"
 
 function love.load()
     love.window.setMode(512, 512, {})
@@ -48,8 +50,15 @@ function love.load()
     images.ship = love.graphics.newImage("images/ship.png")
     images.box = love.graphics.newImage("images/box.png")
     images.player = love.graphics.newImage("images/player2.png")
-    images.drone1 = love.graphics.newImage("images/drone1.png")
-    images.bullet1 = love.graphics.newImage("images/bullet1.png")
+    images.drones = {
+        love.graphics.newImage("images/drone1.png")
+    }
+    images.bullets = {
+        love.graphics.newImage("images/bullet1.png")
+    }
+    images.turrets = {
+        love.graphics.newImage("images/turret1.png")
+    }
 
     love.physics.setMeter(32)
     world = love.physics.newWorld(0, Constants.gravity)
@@ -67,6 +76,8 @@ function love.load()
     drones[4] = Drone(256, 0)
 
     camera = Camera(256, 256, 256, 256)
+
+    turrets[1] = Turret(128, 20)
 end
 
 function love.update(dt)
@@ -112,6 +123,9 @@ function love.draw()
     end
     for i = 1, #drones do
         drones[i]:draw()
+    end
+    for i = 1, #turrets do
+        turrets[i]:draw()
     end
 
     if debug then
