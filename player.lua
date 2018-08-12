@@ -21,12 +21,12 @@ end
 
 function Player:keypressed(key, scancode, isrepeat)
     local x, y = self.body:getPosition()
-    if key == "up" then
+    if key == "up" or key == "space" then
         if #self.objectsSteppingOn > 0 then
             self.body:applyLinearImpulse(0, -50)
         end
     end
-    if key == "space" then
+    if key == "c" then
         if self.pickedObject == nil then
             if #self.objectsToPickup > 0 then
                 local minDist2 = 10000000000
@@ -51,11 +51,12 @@ end
 function Player:update(dt)
     local vx, vy = self.body:getLinearVelocity()
     local threshold = 50
-    self:setFacingLeft(vx < 0)
     if love.keyboard.isDown("left") and vx > -50 then
+        self:setFacingLeft(true)
         self.body:applyForce(-100, 0)
     end
     if love.keyboard.isDown("right") and vx < 50 then
+        self:setFacingLeft(false)
         self.body:applyForce(100, 0)
     end
 end
